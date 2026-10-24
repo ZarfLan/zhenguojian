@@ -6,6 +6,7 @@ on:
 env:
   ANDROID_HOME: /usr/local/lib/android/sdk
   ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/28.2.13676358
+  ANDROID_NDK_ROOT: /usr/local/lib/android/sdk/ndk/28.2.13676358
 
 jobs:
   build:
@@ -27,8 +28,15 @@ jobs:
 
       - name: Install Android NDK 28.2.13676358
         run: |
+          # 1. 赋予 runner 用户写权限（解决 root 权限导致安装失败的问题）
+          sudo chown -R $USER:$USER /usr/local/lib/android/sdk
+          # 2. 清除虚拟机预装的旧 NDK 27，防止冲突干扰
+          rm -rf /usr/local/lib/android/sdk/ndk/*
+          # 3. 安装严格匹配的 NDK 28.2.13676358
           yes "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          yes "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;28.2.13676358"
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;28.2.13676358"
+          # 4. 打印目录确认安装成功
+          ls -la /usr/local/lib/android/sdk/ndk/
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -46,6 +54,7 @@ jobs:
           flutter config --android-sdk $ANDROID_HOME
           yes "y" | flutter doctor --android-licenses || true
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+          echo "ndk.dir=/usr/local/lib/android/sdk/ndk/28.2.13676358" >> android/local.properties
 
       - name: Build APK
         run: |

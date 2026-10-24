@@ -3,6 +3,9 @@ name: Build Android APK
 on:
   workflow_dispatch:
 
+env:
+  ANDROID_HOME: /usr/local/lib/android/sdk
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -30,16 +33,20 @@ jobs:
       - name: Setup Android NDK
         uses: nttld/setup-ndk@v1
         with:
-          ndk-version: r28
+          ndk-version: r28c
+          link-to-sdk: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      - name: Configure Android SDK & Licenses
+        run: |
+          flutter config --android-sdk /usr/local/lib/android/sdk
+          yes "y" | flutter doctor --android-licenses || true
+
       - name: Build APK
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
           python3 scripts/build_android.py --abi arm64-v8a --all-sources
 

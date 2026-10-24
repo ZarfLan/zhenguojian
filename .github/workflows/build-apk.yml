@@ -3,9 +3,6 @@ name: Build Android APK
 on:
   workflow_dispatch:
 
-env:
-  ANDROID_HOME: /usr/local/lib/android/sdk
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,27 +21,33 @@ jobs:
         with:
           go-version: '1.24.1'
 
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r28c
+          link-to-sdk: true
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.4'
           channel: 'stable'
 
-      - name: Setup Android NDK
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r28c
-          link-to-sdk: true
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Configure Android SDK & Licenses
+      - name: Configure Android SDK & local.properties
         run: |
-          flutter config --android-sdk /usr/local/lib/android/sdk
+          # 1. 让 Flutter 直接绑定系统的 Android SDK
+          flutter config --android-sdk $ANDROID_HOME
+          # 2. 自动接受 Android SDK 协议
           yes "y" | flutter doctor --android-licenses || true
+          # 3. 显式写入 local.properties 供 Gradle 读取
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+          echo "ndk.dir=$ANDROID_NDK_HOME" >> android/local.properties
 
       - name: Build APK
         run: |

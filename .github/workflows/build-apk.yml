@@ -45,39 +45,18 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Configure Android SDK & Gradle Repositories
+      - name: Configure Android SDK
         run: |
           flutter config --android-sdk $ANDROID_HOME
           yes "y" | flutter doctor --android-licenses || true
           echo "sdk.dir=$ANDROID_HOME" > android/local.properties
           echo "ndk.dir=/usr/local/lib/android/sdk/ndk/28.2.13676358" >> android/local.properties
-
-          # 注入全局 Gradle 仓库配置，使 Flutter 内置插件也能直接从 Maven Central 下载 Kotlin 依赖
-          mkdir -p ~/.gradle/init.d
-          cat << 'EOF' > ~/.gradle/init.d/repositories.init.gradle
-          gradle.beforeSettings { settings ->
-              settings.pluginManagement.repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          gradle.beforeProject { project ->
-              project.buildscript.repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-              project.repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          EOF
+          # 清理上一轮的手动 init 脚本，避免策略冲突
+          rm -rf ~/.gradle/init.d/*
 
       - name: Build APK
         run: |
-          python3 scripts/build_android.py --abi arm64-v8a --all-sources
+          python3 scripts/build_android.py --abi arm64-v8a --all-sources --cn-mirrors
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
